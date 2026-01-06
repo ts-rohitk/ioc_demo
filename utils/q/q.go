@@ -38,14 +38,17 @@ func Q(taskLength int, data []mapping.RawData, collection *mongo.Collection) {
 	go func() {
 		wg.Wait()
 		close(results)
-		close(processedIOC)
 	}()
 
 	for result := range results {
 		fmt.Printf("task id: %d , data: %+v \n", result.Task.Id, result.Data)
+		processedIOC <- result.Data
 	}
 
-	batchWg.Wait()
+	go func() {
+		batchWg.Wait()
+		close(processedIOC)
+	}()
 
 	fmt.Println("All Processing Completed...!")
 }

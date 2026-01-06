@@ -25,7 +25,7 @@ func (h *HTTPHeaders) ContentTypeJSON() *HTTPHeaders {
 }
 
 func (h *HTTPHeaders) AUTHHeader(token string) *HTTPHeaders {
-	h.headers.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	h.headers.Set("authorization", fmt.Sprintf("Bearer %s", token))
 	return h
 }
 

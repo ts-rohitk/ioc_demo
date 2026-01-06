@@ -19,7 +19,7 @@ import (
 func HandleIocTask(ctx context.Context, t *asynq.Task) error {
 
 	url := string(t.Payload())
-
+	fmt.Println("url", url)
 	exec(ctx, url, queue.MongoClient.Database(config.Cfg.Get("db_name")).Collection("iocs"))
 
 	fmt.Println("in Queue")
@@ -33,7 +33,7 @@ func exec(ctx context.Context, urlRaw string, collection *mongo.Collection) {
 			requests.NewHeader().
 				ContentTypeJSON().
 				Set("Auth-Key", "ef47b34bfff285fd2045a09559d728a823029a1f6cdc0bfc").
-				Set("Accept-Encoding", "gzip,deflate"),
+				Set("Accept-Encoding", "gzip,deflate,br"),
 		).
 		JSONBody(requests.Dict{
 			"query": "get_iocs",

@@ -48,29 +48,53 @@ func mapToIoc(data mapping.RawData) *mapping.IOC {
 		lastSeen = ms
 	}
 
+	reference_url := fmt.Sprintf("https://threatfox.abuse.ch/ioc/%d", data.Id)
+
 	ioc := mapping.IOC{
-		UUID:         uuid.New().String(),
-		ValueRaw:     rawJSONString,
-		ValueNorm:    normalizedJSON,
-		HashCode:     hashedCode,
-		Type:         mapping.IOCType(data.IocType),
-		Title:        buildTitle(data.Ioc, data.ThreatType, data.MalwarePrintable, mapping.IOCType(data.IocType)), // `${ioc} + ${threat_type} + ${type} + ${malware_family_name}`
-		Key:          buildKey(mapping.IOCType(data.IocType), normalizedJSON),
-		FirstSeen:    milliSeconds, // required f"{Type}|{valueNorm}"
-		LastSeen:     lastSeen,
-		CreatedAt:    currentDateToMilliseconds(),
-		UpdatedAt:    nil,
-		ExpiresAt:    nil,
-		ThreatType:   &data.ThreatType,
-		Tags:         data.Tags,
-		Confidence:   calculateConfidenceLevel(data.ConfidenceLevel),
-		Malware:      nil, //req
-		Network:      nil,
-		ThreatActors: nil, //req
-		Victims:      nil,
-		Sources:      nil, //req
-		TTP:          nil,
-		Meta:         nil,
+		UUID:       uuid.New().String(),
+		ValueRaw:   rawJSONString,
+		ValueNorm:  normalizedJSON,
+		HashCode:   hashedCode,
+		Type:       mapping.IOCType(data.IocType),
+		Title:      buildTitle(data.Ioc, data.ThreatType, data.MalwarePrintable, mapping.IOCType(data.IocType)), // `${ioc} + ${threat_type} + ${type} + ${malware_family_name}`
+		Key:        buildKey(mapping.IOCType(data.IocType), normalizedJSON),
+		FirstSeen:  milliSeconds, // required f"{Type}|{valueNorm}"
+		LastSeen:   lastSeen,
+		CreatedAt:  currentDateToMilliseconds(),
+		UpdatedAt:  nil,
+		ExpiresAt:  nil,
+		ThreatType: &data.ThreatType,
+		Tags:       data.Tags,
+		Confidence: calculateConfidenceLevel(data.ConfidenceLevel),
+		Malware: []*mapping.MalwareInfo{
+			{
+				UUID:         uuid.New().String(),
+				Family:       &data.MalwarePrintable,
+				Aliases:      []string(nil),
+				DisplayName:  &data.Malware,
+				PlatformHint: &data.Reference,
+			},
+		}, //req
+		Network: nil,
+		ThreatActors: []*mapping.ThreatActors{
+			{
+				UUID:       uuid.New().String(),
+				Name:       data.ThreatType,
+				Source:     &reference_url,
+				Confidence: calculateConfidenceLevel(data.ConfidenceLevel),
+			},
+		}, //req
+		Victims: nil,
+		Sources: []*mapping.Source{
+			{
+				Name:        "threatFox",
+				URL:         &reference_url,
+				CollectedAt: currentDateToMilliseconds(),
+				Confidence:  calculateConfidenceLevel(data.ConfidenceLevel),
+			},
+		}, //req
+		TTP:  nil,
+		Meta: nil,
 	}
 
 	return &ioc

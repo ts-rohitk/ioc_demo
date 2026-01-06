@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -30,12 +29,11 @@ func New(url string) *Request {
 		client: http.Client{
 			Timeout: time.Second * 10,
 			Transport: &http.Transport{
-				MaxIdleConns:        10,
-				IdleConnTimeout:     90 * time.Second,
-				DisableKeepAlives:   false,
-				DisableCompression:  false, // Automatically add gzip compression to headers
-				ForceAttemptHTTP2:   true,
-				TLSHandshakeTimeout: 1 * time.Second,
+				MaxIdleConns:       100,
+				IdleConnTimeout:    90 * time.Second,
+				DisableCompression: false,
+				DisableKeepAlives:  false,
+				ForceAttemptHTTP2:  true,
 			},
 		},
 	}
@@ -71,6 +69,7 @@ func (r *Request) Send(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header = r.headers
 
 	response, err := r.client.Do(req)
 	if err != nil {
@@ -78,13 +77,11 @@ func (r *Request) Send(ctx context.Context) ([]byte, error) {
 	}
 
 	defer response.Body.Close()
-
 	bodyData, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(string(bodyData))
 	return bodyData, err
 }
 
