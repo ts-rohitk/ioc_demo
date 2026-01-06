@@ -50,8 +50,6 @@ func (h IocHandler) GetIOCs(c *gin.Context) {
 		return
 	}
 
-	// exec(req.Url, h.mongo)
-
 	c.JSON(http.StatusOK, gin.H{
 		"status": "accepted",
 	})

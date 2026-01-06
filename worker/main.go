@@ -11,7 +11,6 @@ import (
 	"goat/utils/requests"
 	"goat/utils/requests/convert"
 	"log"
-	"time"
 
 	"github.com/hibiken/asynq"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,16 +20,13 @@ func HandleIocTask(ctx context.Context, t *asynq.Task) error {
 
 	url := string(t.Payload())
 
-	exec(url, queue.MongoClient.Database(config.Cfg.Get("db_name")).Collection("iocs"))
+	exec(ctx, url, queue.MongoClient.Database(config.Cfg.Get("db_name")).Collection("iocs"))
 
 	fmt.Println("in Queue")
 	return nil
 }
 
-func exec(urlRaw string, collection *mongo.Collection) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
+func exec(ctx context.Context, urlRaw string, collection *mongo.Collection) {
 	res, err := requests.New(urlRaw).
 		Post().
 		Headers(
@@ -69,6 +65,9 @@ func main() {
 				"default":  3,
 				"low":      1,
 			},
+			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
+				log.Printf("Task %s failed: %v", task.Type(), err)
+			}),
 		},
 	)
 
