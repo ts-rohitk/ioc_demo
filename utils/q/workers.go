@@ -1,6 +1,7 @@
 package q
 
 import (
+	"context"
 	"fmt"
 	"goat/utils/mapping"
 	"log"
@@ -9,16 +10,45 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func Workers(id int, tasks <-chan Task, results chan<- Result, wg *sync.WaitGroup) {
+type UpdateTask struct {
+	IncomingIOC *mapping.IOC
+	ExistingIOC *mapping.IOC
+}
+
+func Workers(id int, tasks <-chan Task, results chan<- Result, updates chan<- *UpdateTask, wg *sync.WaitGroup, ctx context.Context, db *mongo.Collection) {
 	defer wg.Done()
 	for task := range tasks {
+		normalizeRawJson, hash, err := hashNormalize(task.Data)
+		if err != nil {
+			log.Fatal(err)
+		}
+		key := buildKey(mapping.IOCType(task.Data.IocType), normalizeRawJson)
+		fmt.Println("key", key)
 		result := Result{
 			Task: task,
 			Data: mapToIoc(task.Data),
 		}
-		results <- result
+
+		var record mapping.IOC
+		dberr := db.FindOne(ctx, bson.M{"key": key, "hashCode": hash}).Decode(&record)
+
+		if dberr == mongo.ErrNoDocuments {
+			results <- result
+		} else if dberr != nil {
+			log.Printf("err from db when finding existing records in ioc with key %s & hash %s", key, hash)
+			continue
+		} else {
+			updates <- &UpdateTask{
+				IncomingIOC: result.Data,
+				ExistingIOC: &record,
+			}
+			fmt.Printf("worker %d: sent to update channel \n", id)
+		}
+
 		fmt.Printf("worker id: %d finished task with id:%d \n", id, task.Id)
 	}
 }
@@ -48,7 +78,15 @@ func mapToIoc(data mapping.RawData) *mapping.IOC {
 		lastSeen = ms
 	}
 
-	reference_url := fmt.Sprintf("https://threatfox.abuse.ch/ioc/%d", data.Id)
+	var malwareAliases []string
+
+	if strings.Contains(data.MalwareAlias, ",") {
+		malwareAliases = strings.Split(data.MalwareAlias, ",")
+	} else {
+		malwareAliases = strings.Split(data.MalwareAlias, "")
+	}
+
+	reference_url := fmt.Sprintf("https://threatfox.abuse.ch/ioc/%s", data.Id)
 
 	ioc := mapping.IOC{
 		UUID:       uuid.New().String(),
@@ -70,7 +108,7 @@ func mapToIoc(data mapping.RawData) *mapping.IOC {
 			{
 				UUID:         uuid.New().String(),
 				Family:       &data.MalwarePrintable,
-				Aliases:      []string(nil),
+				Aliases:      malwareAliases,
 				DisplayName:  &data.Malware,
 				PlatformHint: &data.Reference,
 			},

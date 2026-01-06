@@ -13,14 +13,28 @@ import (
 	"log"
 
 	"github.com/hibiken/asynq"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func HandleIocTask(ctx context.Context, t *asynq.Task) error {
 
 	url := string(t.Payload())
 	fmt.Println("url", url)
-	exec(ctx, url, queue.MongoClient.Database(config.Cfg.Get("db_name")).Collection("iocs"))
+	m := queue.MongoClient.Database(config.Cfg.Get("db_name"))
+	indexes := mongo.IndexModel{
+		Keys:    bson.D{{Key: "key", Value: 1}, {Key: "hashCode", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+
+	collection := m.Collection("iocs")
+	_, err := collection.Indexes().CreateOne(ctx, indexes)
+	if err != nil {
+		return err
+	}
+
+	exec(ctx, url, collection)
 
 	fmt.Println("in Queue")
 	return nil
@@ -52,7 +66,7 @@ func exec(ctx context.Context, urlRaw string, collection *mongo.Collection) {
 
 	fmt.Println(mappedRes.QueryStatus)
 	fmt.Println(mappedRes.Data)
-	q.Q(len(mappedRes.Data), mappedRes.Data, collection)
+	q.Q(len(mappedRes.Data), mappedRes.Data, ctx, collection)
 }
 
 func main() {

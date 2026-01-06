@@ -47,7 +47,7 @@ const (
 	- if new malware family , save !
 	- UpdatedAt if updating
 
-	[x] if incoming ioc has a malware & existing ioc has no malware or a different malware family , lookup a malware
+	[x] if incoming ioc has a malware & existing ioc has no specific malware or a different malware family , lookup a malware
 */
 
 type IOC struct {

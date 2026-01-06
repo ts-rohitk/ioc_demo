@@ -1,5 +1,7 @@
 package mapping
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type IOCType string
 
 const (
@@ -14,7 +16,7 @@ const (
 )
 
 type IOC struct {
-	// ID           *primitive.ObjectID     `bson:"_id,omitempty" json:"id,omitempty"`
+	ID           *primitive.ObjectID     `bson:"_id,omitempty" json:"id,omitempty"`
 	UUID         string                  `bson:"uuid" json:"uuid"`
 	HashCode     string                  `bson:"hashCode" json:"hashCode"`
 	Type         IOCType                 `bson:"type" json:"type"`

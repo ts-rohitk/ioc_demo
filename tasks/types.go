@@ -1,5 +1,6 @@
 package tasks
 
 const (
-	TypeProcessIOC = "ioc:process"
+	TypeProcessIOC      = "ioc:process"
+	TaskProcesIOCUpdate = "ioc:update"
 )
